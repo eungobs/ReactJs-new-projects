@@ -151,7 +151,7 @@ const WeatherApp = () => {
         </IconButton>
       </Tooltip>
       <Typography variant="body2" align="center">
-        Weather created by <a href="https://github.com/eungobs/my-projects">eungobs</a> - @2023
+        Weather created by <a href="https://github.com/eungobs/ReactJs-new-projects.git">eungobs</a> - @2023
       </Typography>
     </Container>
   );
