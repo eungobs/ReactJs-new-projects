@@ -78,7 +78,7 @@ const WeatherApp = () => {
           return '🌤️';
       }
     } else {
-      return '🌙✨';
+      return <span className="moon-icon">🌙</span>;
     }
   };
 
@@ -86,8 +86,19 @@ const WeatherApp = () => {
     return isDay ? 'Day' : 'Night';
   };
 
+  const generateStars = () => {
+    const stars = [];
+    for (let i = 0; i < 100; i++) {
+      const top = Math.random() * 100;
+      const left = Math.random() * 100;
+      stars.push(<div key={i} className="star" style={{ top: `${top}%`, left: `${left}%` }}></div>);
+    }
+    return stars;
+  };
+
   return (
-    <Container component="main" maxWidth="xs" className="weather-container">
+    <Container component="main" maxWidth="xs" className={`weather-container ${isDay ? 'day' : 'night'}`}>
+      {!isDay && <div className="stars">{generateStars()}</div>}
       <Typography variant="h4" align="center">Weather in South Africa</Typography>
       <div className="city-input">
         <TextField 
@@ -147,4 +158,10 @@ const WeatherApp = () => {
 };
 
 export default WeatherApp;
+
+
+
+
+
+
 
