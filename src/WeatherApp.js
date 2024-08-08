@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Button, TextField, Typography, Card, CardContent, Box } from '@mui/material';
+import { Button, TextField, Typography, Card, CardContent, Box, Grid } from '@mui/material';
 import { Search as SearchIcon } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import Popup from './Popup'; // Import the Popup component
@@ -22,9 +22,21 @@ const WeatherContainer = styled(Box)(({ isDay }) => ({
   textAlign: 'center',
 }));
 
+const HourlyCard = styled(Card)({
+  maxWidth: 200,
+  margin: '10px',
+});
+
+const DailyCard = styled(Card)({
+  maxWidth: 200,
+  margin: '10px',
+});
+
 const WeatherApp = () => {
   const [city, setCity] = useState('');
   const [weather, setWeather] = useState({});
+  const [hourlyForecast, setHourlyForecast] = useState([]);
+  const [dailyForecast, setDailyForecast] = useState([]);
   const [currentTime, setCurrentTime] = useState('');
   const [currentDate, setCurrentDate] = useState('');
   const [isCelsius, setIsCelsius] = useState(true);
@@ -40,10 +52,16 @@ const WeatherApp = () => {
       const units = isCelsius ? 'metric' : 'imperial';
       const weatherResponse = await axios.get(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=${units}`);
       const weatherData = weatherResponse.data;
+      
+      const forecastResponse = await axios.get(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=${units}`);
+      const forecastData = forecastResponse.data;
+      
       setWeather(weatherData);
       setTemperatureInCelsius(weatherData.main.temp);
       setTemperatureInFahrenheit(weatherData.main.temp * 9 / 5 + 32);
-
+      setHourlyForecast(forecastData.list.slice(0, 8)); // Get the next 8 hours
+      setDailyForecast(forecastData.list.filter((_, index) => index % 8 === 0).slice(0, 7)); // Get the next 7 days
+      
       checkDayOrNight(weatherData);
     } catch (error) {
       console.error('Error fetching weather data:', error);
@@ -92,6 +110,7 @@ const WeatherApp = () => {
     updateCurrentDate();
     requestNotificationPermission();
     detectCurrentLocation(); // Detect location on component mount
+    setShowPopup(true); // Display the popup immediately after the app opens
   }, [fetchWeatherByCoordinates, notificationPermission]);
 
   const fetchWeather = async (city) => {
@@ -100,10 +119,16 @@ const WeatherApp = () => {
       const units = isCelsius ? 'metric' : 'imperial';
       const weatherResponse = await axios.get(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=${units}`);
       const weatherData = weatherResponse.data;
+      
+      const forecastResponse = await axios.get(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}&units=${units}`);
+      const forecastData = forecastResponse.data;
+      
       setWeather(weatherData);
       setTemperatureInCelsius(weatherData.main.temp);
       setTemperatureInFahrenheit(weatherData.main.temp * 9 / 5 + 32);
-
+      setHourlyForecast(forecastData.list.slice(0, 8)); // Get the next 8 hours
+      setDailyForecast(forecastData.list.filter((_, index) => index % 8 === 0).slice(0, 7)); // Get the next 7 days
+      
       checkDayOrNight(weatherData);
     } catch (error) {
       console.error('Error fetching weather data:', error);
@@ -168,72 +193,61 @@ const WeatherApp = () => {
       const iconCode = weather.weather[0].icon;
       return `http://openweathermap.org/img/wn/${iconCode}.png`;
     }
-    return '';
-  };
-
-  const handlePopupClose = () => {
-    setShowPopup(false);
+    return 'http://openweathermap.org/img/wn/01d.png'; // Default icon
   };
 
   return (
     <WeatherContainer isDay={isDay}>
+      <Typography variant="h4" gutterBottom>
+        {getDayOrNightMessage()}
+      </Typography>
       <TextField
         label="City"
         variant="outlined"
         value={city}
         onChange={(e) => setCity(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            handleSearch();
-          }
-        }}
-        sx={{ mb: 2, width: '300px' }}
+        sx={{ mb: 2 }}
       />
       <Button
         variant="contained"
         color="primary"
-        endIcon={<SearchIcon />}
         onClick={handleSearch}
-        sx={{ mb: 2 }}
+        startIcon={<SearchIcon />}
       >
         Search
       </Button>
       <Button
         variant="outlined"
+        color="secondary"
         onClick={handleUnitToggle}
-        sx={{ mb: 2 }}
+        sx={{ ml: 2 }}
       >
-        Switch to {isCelsius ? 'Fahrenheit' : 'Celsius'}
+        {isCelsius ? 'Switch to °F' : 'Switch to °C'}
       </Button>
-      <Card sx={{ minWidth: 275, textAlign: 'center' }}>
+
+      <Card sx={{ mt: 2, maxWidth: 500 }}>
         <CardContent>
-          <Typography variant="h5" component="div">
+          <Typography variant="h5" gutterBottom>
             {weather.name}
           </Typography>
-          <Typography variant="h6" color="text.secondary">
-            {getWeatherConditionEmoji()}
+          <Typography variant="h6">
+            {getWeatherConditionEmoji()} {weather.main ? `${weather.main.temp}°${isCelsius ? 'C' : 'F'}` : '--'}
           </Typography>
-          {weather.main && (
-            <>
-              <Typography variant="h6">
-                Temperature: {isCelsius ? temperatureInCelsius.toFixed(1) : temperatureInFahrenheit.toFixed(1)}°{isCelsius ? 'C' : 'F'}
-              </Typography>
-              <Typography variant="body2">
-                High: {isCelsius ? weather.main.temp_max.toFixed(1) : (weather.main.temp_max * 9 / 5 + 32).toFixed(1)}°{isCelsius ? 'C' : 'F'} / Low: {isCelsius ? weather.main.temp_min.toFixed(1) : (weather.main.temp_min * 9 / 5 + 32).toFixed(1)}°{isCelsius ? 'C' : 'F'}
-              </Typography>
-              <Typography variant="body2">
-                Humidity: {weather.main.humidity}%
-              </Typography>
-              <Typography variant="body2">
-                Wind Speed: {weather.wind ? weather.wind.speed : 'N/A'} {isCelsius ? 'm/s' : 'mph'}
-              </Typography>
-            </>
-          )}
-          <Typography variant="body2">
+          <img src={getWeatherIcon()} alt="Weather icon" />
+          <Typography variant="body1">
             {getPrecipitation()}
           </Typography>
           <Typography variant="body2">
-            {getDayOrNightMessage()}
+            Humidity: {weather.main ? `${weather.main.humidity}%` : '--'}
+          </Typography>
+          <Typography variant="body2">
+            Wind: {weather.wind ? `${weather.wind.speed} m/s` : '--'}
+          </Typography>
+          <Typography variant="body2">
+            High: {weather.main ? `${weather.main.temp_max}°${isCelsius ? 'C' : 'F'}` : '--'}
+          </Typography>
+          <Typography variant="body2">
+            Low: {weather.main ? `${weather.main.temp_min}°${isCelsius ? 'C' : 'F'}` : '--'}
           </Typography>
           <Typography variant="body2">
             {currentTime}
@@ -241,12 +255,51 @@ const WeatherApp = () => {
           <Typography variant="body2">
             {currentDate}
           </Typography>
-          <img src={getWeatherIcon()} alt="Weather icon" />
         </CardContent>
       </Card>
-      {showPopup && <Popup open={showPopup} onClose={handlePopupClose} />} {/* Show popup when showPopup is true */}
+
+      <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', mt: 2 }}>
+        {hourlyForecast.map((item, index) => (
+          <HourlyCard key={index}>
+            <CardContent>
+              <Typography variant="h6">
+                {new Date(item.dt * 1000).getHours()}:00
+              </Typography>
+              <Typography variant="body2">
+                {isCelsius ? `${item.main.temp}°C` : `${item.main.temp}°F`}
+              </Typography>
+              <img src={`http://openweathermap.org/img/wn/${item.weather[0].icon}.png`} alt="Weather icon" />
+              <Typography variant="body2">
+                {item.weather[0].description}
+              </Typography>
+            </CardContent>
+          </HourlyCard>
+        ))}
+      </Box>
+
+      <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', mt: 2 }}>
+        {dailyForecast.map((item, index) => (
+          <DailyCard key={index}>
+            <CardContent>
+              <Typography variant="h6">
+                {new Date(item.dt * 1000).toLocaleDateString()}
+              </Typography>
+              <Typography variant="body2">
+                {isCelsius ? `${item.main.temp.day}°C` : `${item.main.temp.day}°F`}
+              </Typography>
+              <img src={`http://openweathermap.org/img/wn/${item.weather[0].icon}.png`} alt="Weather icon" />
+              <Typography variant="body2">
+                {item.weather[0].description}
+              </Typography>
+            </CardContent>
+          </DailyCard>
+        ))}
+      </Box>
+
+      <Popup open={showPopup} onClose={() => setShowPopup(false)} /> {/* Integrate Popup */}
     </WeatherContainer>
   );
 };
 
 export default WeatherApp;
+

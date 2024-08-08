@@ -2,6 +2,11 @@ import React from 'react';
 import { Dialog, DialogActions, DialogContent, DialogTitle, Button, Typography } from '@mui/material';
 
 const Popup = ({ open, onClose }) => {
+  const handleLinkClick = (e) => {
+    e.preventDefault();
+    window.location.href = '/securityterms'; // Internal navigation
+  };
+
   return (
     <Dialog
       open={open}
@@ -13,7 +18,7 @@ const Popup = ({ open, onClose }) => {
       <DialogContent>
         <Typography id="popup-description">
           We have updated our Privacy Policy and Cookie Policy. Please review our
-          <a href="https://example.com/security-terms" target="_blank" rel="noopener noreferrer">
+          <a href="/securityterms" onClick={handleLinkClick}>
             Security Terms
           </a>.
         </Typography>
