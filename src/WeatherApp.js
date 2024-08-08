@@ -171,6 +171,10 @@ const WeatherApp = () => {
     return '';
   };
 
+  const handlePopupClose = () => {
+    setShowPopup(false);
+  };
+
   return (
     <WeatherContainer isDay={isDay}>
       <TextField
@@ -240,12 +244,9 @@ const WeatherApp = () => {
           <img src={getWeatherIcon()} alt="Weather icon" />
         </CardContent>
       </Card>
-      {showPopup && <Popup setShowPopup={setShowPopup} />} {/* Show popup when showPopup is true */}
-      const [showPopup, setShowPopup] = useState(true); // Initialize to true
+      {showPopup && <Popup open={showPopup} onClose={handlePopupClose} />} {/* Show popup when showPopup is true */}
     </WeatherContainer>
   );
 };
 
 export default WeatherApp;
-
-

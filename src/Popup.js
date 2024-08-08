@@ -12,7 +12,10 @@ const Popup = ({ open, onClose }) => {
       <DialogTitle id="popup-title">Important Information</DialogTitle>
       <DialogContent>
         <Typography id="popup-description">
-          We have updated our Privacy Policy and Cookie Policy.
+          We have updated our Privacy Policy and Cookie Policy. Please review our
+          <a href="https://example.com/security-terms" target="_blank" rel="noopener noreferrer">
+            Security Terms
+          </a>.
         </Typography>
       </DialogContent>
       <DialogActions>
