@@ -1,8 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Button, TextField, Typography, Container, Card, CardContent } from '@mui/material';
-import { Search as SearchIcon, LocationOn as LocationOnIcon } from '@mui/icons-material';
-import './WeatherApp.css';
+import { Button, TextField, Typography, Card, CardContent, Box } from '@mui/material';
+import { Search as SearchIcon } from '@mui/icons-material';
+import { styled } from '@mui/material/styles';
+import Popup from './Popup'; // Import the Popup component
+import './WeatherApp.css';  // Ensure the CSS is imported
+
+const WeatherContainer = styled(Box)(({ isDay }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minHeight: '100vh',
+  padding: '20px',
+  background: isDay
+    ? 'url(https://img.freepik.com/free-photo/photorealistic-style-clouds_23-2151058945.jpg?t=st=1723102422~exp=1723106022~hmac=27b6168a7603409ee9e910f116514487648654455e13418e44fe7651a1e0d50c&w=826) no-repeat center center fixed'
+    : 'url(https://img.freepik.com/free-vector/night-landscape-with-starry-sky-design_1048-20428.jpg?t=st=1723132847~exp=1723136447~hmac=1fac52010109d82bc4353b8e5c28741aa04999acb75be2493189e9a1e540749c&w=900) no-repeat center center fixed',
+  backgroundSize: 'cover',
+  color: '#333',
+  fontFamily: 'Roboto, sans-serif',
+  textAlign: 'center',
+}));
 
 const WeatherApp = () => {
   const [city, setCity] = useState('');
@@ -13,44 +31,94 @@ const WeatherApp = () => {
   const [temperatureInCelsius, setTemperatureInCelsius] = useState(0);
   const [temperatureInFahrenheit, setTemperatureInFahrenheit] = useState(0);
   const [isDay, setIsDay] = useState(true);
-  const [hourlyForecast, setHourlyForecast] = useState([]);
-  const [dailyForecast, setDailyForecast] = useState([]);
-  const [savedLocations, setSavedLocations] = useState([]);
   const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
+  const [showPopup, setShowPopup] = useState(true); // State to manage popup visibility
+
+  const fetchWeatherByCoordinates = useCallback(async (lat, lon) => {
+    try {
+      const apiKey = '3ed565296c19775878a64c31457d90b2';
+      const units = isCelsius ? 'metric' : 'imperial';
+      const weatherResponse = await axios.get(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=${units}`);
+      const weatherData = weatherResponse.data;
+      setWeather(weatherData);
+      setTemperatureInCelsius(weatherData.main.temp);
+      setTemperatureInFahrenheit(weatherData.main.temp * 9 / 5 + 32);
+
+      checkDayOrNight(weatherData);
+    } catch (error) {
+      console.error('Error fetching weather data:', error);
+    }
+  }, [isCelsius]);
 
   useEffect(() => {
+    const updateCurrentTime = () => {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      setCurrentTime(`Current Time: ${hours}:${minutes}`);
+      setIsDay(now.getHours() >= 6 && now.getHours() < 18);
+    };
+
+    const updateCurrentDate = () => {
+      const now = new Date();
+      const options = { year: 'numeric', month: 'long', day: 'numeric' };
+      setCurrentDate(now.toLocaleDateString('en-US', options));
+    };
+
+    const requestNotificationPermission = async () => {
+      if (notificationPermission === 'default') {
+        const permission = await Notification.requestPermission();
+        setNotificationPermission(permission);
+      }
+    };
+
+    const detectCurrentLocation = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            fetchWeatherByCoordinates(latitude, longitude);
+          },
+          (error) => {
+            console.error('Error getting current location:', error);
+          }
+        );
+      } else {
+        console.error('Geolocation is not supported by this browser.');
+      }
+    };
+
     updateCurrentTime();
     updateCurrentDate();
     requestNotificationPermission();
-    getSavedLocations();
-
-  }, []);
+    detectCurrentLocation(); // Detect location on component mount
+  }, [fetchWeatherByCoordinates, notificationPermission]);
 
   const fetchWeather = async (city) => {
     try {
-      const apiKey = '3ed565296c19775878a64c31457d90b2'; 
+      const apiKey = '3ed565296c19775878a64c31457d90b2';
       const units = isCelsius ? 'metric' : 'imperial';
       const weatherResponse = await axios.get(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=${units}`);
       const weatherData = weatherResponse.data;
       setWeather(weatherData);
       setTemperatureInCelsius(weatherData.main.temp);
       setTemperatureInFahrenheit(weatherData.main.temp * 9 / 5 + 32);
-      
-      const coordinates = {
-        lat: weatherData.coord.lat,
-        lon: weatherData.coord.lon
-      };
-      
-      const forecastResponse = await axios.get(`https://api.openweathermap.org/data/2.5/onecall?lat=${coordinates.lat}&lon=${coordinates.lon}&appid=${apiKey}&units=${units}`);
-      const forecastData = forecastResponse.data;
-      setHourlyForecast(forecastData.hourly.slice(0, 8)); // Next 8 hours
-      setDailyForecast(forecastData.daily.slice(1, 4)); // Next 3 days
-      
+
       checkDayOrNight(weatherData);
-      saveLocation(city);
     } catch (error) {
       console.error('Error fetching weather data:', error);
     }
+  };
+
+  const checkDayOrNight = (data) => {
+    const sunrise = new Date(data.sys.sunrise * 1000);
+    const sunset = new Date(data.sys.sunset * 1000);
+    const now = new Date();
+    setIsDay(now > sunrise && now < sunset);
+  };
+
+  const getDayOrNightMessage = () => {
+    return isDay ? 'It\'s a beautiful day!' : 'Good evening!';
   };
 
   const handleSearch = () => {
@@ -63,218 +131,121 @@ const WeatherApp = () => {
     setIsCelsius(!isCelsius);
   };
 
-  const updateCurrentTime = () => {
-    const now = new Date();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    setCurrentTime(`Current Time: ${hours}:${minutes}`);
-    setIsDay(now.getHours() >= 6 && now.getHours() < 18); // Assume day is from 6 AM to 6 PM
-  };
-
-  const updateCurrentDate = () => {
-    const now = new Date();
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    setCurrentDate(now.toLocaleDateString('en-US', options));
-  };
-
-  const checkDayOrNight = (data) => {
-    const sunrise = new Date(data.sys.sunrise * 1000);
-    const sunset = new Date(data.sys.sunset * 1000);
-    const now = new Date();
-    setIsDay(now > sunrise && now < sunset);
-  };
-
-  const getWeatherIcon = (iconCode) => {
-    // Map icon codes to emoji or use a weather icon library
-    switch (iconCode) {
-      case '01d':
-        return '☀️'; // Clear sky
-      case '01n':
-        return '🌙'; // Clear sky night
-      case '02d':
-        return '🌤️'; // Few clouds day
-      case '02n':
-        return '☁️'; // Few clouds night
-      case '03d':
-      case '03n':
-        return '☁️'; // Scattered clouds
-      case '04d':
-      case '04n':
-        return '☁️'; // Broken clouds
-      case '09d':
-      case '09n':
-        return '🌧️'; // Shower rain
-      case '10d':
-      case '10n':
-        return '🌦️'; // Rain
-      case '11d':
-      case '11n':
-        return '🌩️'; // Thunderstorm
-      case '13d':
-      case '13n':
-        return '❄️'; // Snow
-      case '50d':
-      case '50n':
-        return '🌫️'; // Mist
-      default:
-        return '🌈'; // Default weather icon
+  const getWeatherConditionEmoji = () => {
+    if (weather.weather && weather.weather.length > 0) {
+      const description = weather.weather[0].description.toLowerCase();
+      if (description.includes('clear') || description.includes('sunny')) {
+        return '☀️';
+      }
+      if (description.includes('cloudy') || description.includes('overcast')) {
+        return '☁️';
+      }
+      if (description.includes('rain') || description.includes('drizzle')) {
+        return '🌧️';
+      }
+      if (description.includes('snow')) {
+        return '❄️';
+      }
+      if (description.includes('thunderstorm')) {
+        return '⛈️';
+      }
     }
+    return '🌈';
   };
 
-  const getDayOrNightMessage = () => {
-    return isDay ? 'Day' : 'Night';
-  };
-
-  const generateStars = () => {
-    const stars = [];
-    for (let i = 0; i < 100; i++) {
-      const top = Math.random() * 100;
-      const left = Math.random() * 100;
-      stars.push(<div key={i} className="star" style={{ top: `${top}%`, left: `${left}%` }}></div>);
+  const getPrecipitation = () => {
+    if (weather.rain) {
+      return `Rain: ${weather.rain['1h']} mm`;
     }
-    return stars;
-  };
-
-  const requestNotificationPermission = async () => {
-    if (notificationPermission === 'default') {
-      const permission = await Notification.requestPermission();
-      setNotificationPermission(permission);
+    if (weather.snow) {
+      return `Snow: ${weather.snow['1h']} mm`;
     }
+    return 'No precipitation';
   };
 
-  const showNotification = (message) => {
-    if (notificationPermission === 'granted') {
-      new Notification('Weather Alert', {
-        body: message,
-        icon: 'weather-icon.png' 
-      });
+  const getWeatherIcon = () => {
+    if (weather.weather && weather.weather.length > 0) {
+      const iconCode = weather.weather[0].icon;
+      return `http://openweathermap.org/img/wn/${iconCode}.png`;
     }
-  };
-
-  const saveLocation = (location) => {
-    const updatedLocations = [...savedLocations, location];
-    localStorage.setItem('locations', JSON.stringify(updatedLocations));
-    setSavedLocations(updatedLocations);
-  };
-
-  const getSavedLocations = () => {
-    const locations = JSON.parse(localStorage.getItem('locations')) || [];
-    setSavedLocations(locations);
-  };
-
-  const handleLocationChange = (e) => {
-    const newCity = e.target.value;
-    setCity(newCity);
-    fetchWeather(newCity);
-  };
-
-  const handleCurrentLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          fetchWeatherByCoordinates(latitude, longitude);
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-        }
-      );
-    } else {
-      console.error('Geolocation is not supported by this browser.');
-    }
-  };
-
-  const fetchWeatherByCoordinates = async (lat, lon) => {
-    try {
-      const apiKey = '3ed565296c19775878a64c31457d90b2'; 
-      const units = isCelsius ? 'metric' : 'imperial';
-      const response = await axios.get(`https://api.openweathermap.org/data/2.5/onecall?lat=${lat}&lon=${lon}&appid=${apiKey}&units=${units}`);
-      const data = response.data;
-      setWeather(data.current);
-      setHourlyForecast(data.hourly.slice(0, 8));
-      setDailyForecast(data.daily.slice(1, 4));
-      checkDayOrNight(data.current);
-    } catch (error) {
-      console.error('Error fetching weather data by coordinates:', error);
-    }
+    return '';
   };
 
   return (
-    <Container component="main" maxWidth="lg" className={`weather-container ${isDay ? 'day' : 'night'}`}>
-      {!isDay && <div className="stars">{generateStars()}</div>}
-      <Typography variant="h4" align="center">Weather in South Africa</Typography>
-      <div className="city-input">
-        <TextField 
-          label="Enter a city" 
-          variant="outlined" 
-          fullWidth 
-          value={city} 
-          onChange={handleLocationChange}
-        />
-        <Button 
-          variant="contained" 
-          color="primary" 
-          onClick={handleSearch} 
-          startIcon={<SearchIcon />}
-          style={{ marginTop: '10px' }}
-        >
-          Search
-        </Button>
-        <Button 
-          variant="contained" 
-          color="secondary" 
-          onClick={handleCurrentLocation} 
-          startIcon={<LocationOnIcon />}
-          style={{ marginTop: '10px' }}
-        >
-          Get Current Location
-        </Button>
-      </div>
-      <Typography variant="h6" align="center">{currentDate}</Typography>
-      <Typography variant="h6" align="center">{currentTime}</Typography>
-
-      {weather && (
-        <Card className="weather-details" style={{ marginTop: '20px' }}>
-          <CardContent>
-            <Typography variant="h5">{weather.weather[0].description}</Typography>
-            <Typography variant="h6">
-              Temperature: {isCelsius ? temperatureInCelsius : temperatureInFahrenheit}°{isCelsius ? 'C' : 'F'}
-            </Typography>
-            <Typography>Humidity: {weather.main.humidity}%</Typography>
-            <Typography>Wind: {weather.wind.speed} {isCelsius ? 'm/s' : 'mph'}</Typography>
-            <Typography>Precipitation: {weather.rain ? weather.rain['1h'] : '0'} mm</Typography>
-            <Typography>Overview: {getDayOrNightMessage()}</Typography>
-            <Typography>Weather Icon: {getWeatherIcon(weather.weather[0].icon)}</Typography>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="forecast hourly">
-        <Typography variant="h6">Hourly Forecast</Typography>
-        {hourlyForecast.map((hour, index) => (
-          <div key={index} className="forecast-item">
-            <Typography>{new Date(hour.dt * 1000).toLocaleTimeString()}</Typography>
-            <Typography>{hour.temp}°C</Typography>
-            <Typography>{hour.weather[0].description}</Typography>
-            <Typography>{getWeatherIcon(hour.weather[0].icon)}</Typography>
-          </div>
-        ))}
-      </div>
-
-      <div className="forecast daily">
-        <Typography variant="h6">Daily Forecast</Typography>
-        {dailyForecast.map((day, index) => (
-          <div key={index} className="forecast-item">
-            <Typography>{new Date(day.dt * 1000).toLocaleDateString()}</Typography>
-            <Typography>{day.temp.day}°C</Typography>
-            <Typography>{day.weather[0].description}</Typography>
-            <Typography>{getWeatherIcon(day.weather[0].icon)}</Typography>
-          </div>
-        ))}
-      </div>
-    </Container>
+    <WeatherContainer isDay={isDay}>
+      <TextField
+        label="City"
+        variant="outlined"
+        value={city}
+        onChange={(e) => setCity(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            handleSearch();
+          }
+        }}
+        sx={{ mb: 2, width: '300px' }}
+      />
+      <Button
+        variant="contained"
+        color="primary"
+        endIcon={<SearchIcon />}
+        onClick={handleSearch}
+        sx={{ mb: 2 }}
+      >
+        Search
+      </Button>
+      <Button
+        variant="outlined"
+        onClick={handleUnitToggle}
+        sx={{ mb: 2 }}
+      >
+        Switch to {isCelsius ? 'Fahrenheit' : 'Celsius'}
+      </Button>
+      <Card sx={{ minWidth: 275, textAlign: 'center' }}>
+        <CardContent>
+          <Typography variant="h5" component="div">
+            {weather.name}
+          </Typography>
+          <Typography variant="h6" color="text.secondary">
+            {getWeatherConditionEmoji()}
+          </Typography>
+          {weather.main && (
+            <>
+              <Typography variant="h6">
+                Temperature: {isCelsius ? temperatureInCelsius.toFixed(1) : temperatureInFahrenheit.toFixed(1)}°{isCelsius ? 'C' : 'F'}
+              </Typography>
+              <Typography variant="body2">
+                High: {isCelsius ? weather.main.temp_max.toFixed(1) : (weather.main.temp_max * 9 / 5 + 32).toFixed(1)}°{isCelsius ? 'C' : 'F'} / Low: {isCelsius ? weather.main.temp_min.toFixed(1) : (weather.main.temp_min * 9 / 5 + 32).toFixed(1)}°{isCelsius ? 'C' : 'F'}
+              </Typography>
+              <Typography variant="body2">
+                Humidity: {weather.main.humidity}%
+              </Typography>
+              <Typography variant="body2">
+                Wind Speed: {weather.wind ? weather.wind.speed : 'N/A'} {isCelsius ? 'm/s' : 'mph'}
+              </Typography>
+            </>
+          )}
+          <Typography variant="body2">
+            {getPrecipitation()}
+          </Typography>
+          <Typography variant="body2">
+            {getDayOrNightMessage()}
+          </Typography>
+          <Typography variant="body2">
+            {currentTime}
+          </Typography>
+          <Typography variant="body2">
+            {currentDate}
+          </Typography>
+          <img src={getWeatherIcon()} alt="Weather icon" />
+        </CardContent>
+      </Card>
+      {showPopup && <Popup setShowPopup={setShowPopup} />} {/* Show popup when showPopup is true */}
+      const [showPopup, setShowPopup] = useState(true); // Initialize to true
+    </WeatherContainer>
   );
 };
 
 export default WeatherApp;
+
 
