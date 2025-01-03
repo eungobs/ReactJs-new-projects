@@ -1,11 +1,14 @@
-:weather-container {
-  padding: 20px;
-  width: 100vw;
-  max-width: 1600px;
-  margin: 0 auto;
+.weather-container {
+  padding: 10px;
+  width: 300px; /* Fixed smaller width */
+  max-width: 300px; /* Reduced max-width */
+  margin: 10px auto; /* Reduced margin */
   font-family: 'Roboto', sans-serif;
   position: relative;
   overflow: hidden;
+  border-radius: 15px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  aspect-ratio: 1/1;
 }
 
 .weather-container.day {
@@ -44,55 +47,56 @@
   background-color: rgba(255, 255, 255, 0.9);
   border-radius: 15px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  padding: 20px;
-  margin: 20px auto;
-  max-width: 600px;
+  padding: 12px; /* Slightly reduced padding */
+  margin: 8px auto; /* Slightly reduced margin */
+  max-width: 90%;
   position: relative;
   z-index: 2;
   text-align: center;
 }
 
 .current-weather {
-  margin-bottom: 20px;
+  margin-bottom: 12px; /* Slightly reduced margin */
 }
 
 .weather-icon {
-  width: 100px;
-  height: 100px;
+  width: 50px; /* Slightly reduced size */
+  height: 50px;
 }
 
 .weather-details {
   display: flex;
   justify-content: space-around;
-  margin-top: 10px;
-  font-size: 16px;
+  margin-top: 8px; /* Slightly reduced margin */
+  font-size: 14px;
 }
 
 .forecast {
   background-color: rgba(255, 255, 255, 0.9);
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  padding: 10px;
-  margin: 10px 0;
+  padding: 8px; /* Slightly reduced padding */
+  margin: 8px 0; /* Slightly reduced margin */
   text-align: center;
 }
 
-.forecast.hourly, .forecast.daily {
+.forecast.hourly,
+.forecast.daily {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 8px; /* Slightly reduced gap */
 }
 
 .forecast-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
-  margin-bottom: 10px;
+  margin-bottom: 8px; /* Slightly reduced margin */
 }
 
 .forecast-item {
   background-color: #f0f0f0;
-  padding: 10px;
+  padding: 8px;
   border-radius: 8px;
   width: 100%;
   text-align: center;
@@ -100,22 +104,26 @@
 }
 
 .forecast-item .weather-icon {
-  width: 50px;
-  height: 50px;
+  width: 35px; /* Reduced size */
+  height: 35px;
 }
 
 /* Responsive Design */
 @media (max-width: 740px) {
+  .weather-container {
+    width: 250px; /* Even smaller on mobile */
+    max-width: 250px;
+  }
+  
   .weather-card {
-    max-width: 100%;
-    padding: 15px;
+    padding: 8px;
   }
-
+  
   .weather-icon {
-    width: 80px;
-    height: 80px;
+    width: 40px;
+    height: 40px;
   }
-
+  
   .forecast-item {
     min-width: 100%;
   }

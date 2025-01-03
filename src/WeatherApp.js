@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Button, TextField, Typography, Card, CardContent, Box, Grid } from '@mui/material';
 import { Search as SearchIcon } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
-import Popup from './Popup';
+import Popup from './Popup'; 
 import './WeatherApp.css';  
 
 const WeatherContainer = styled(Box)(({ isDay }) => ({
