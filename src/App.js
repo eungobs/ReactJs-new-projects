@@ -2,7 +2,7 @@ import React from 'react';
 import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import WeatherApp from './WeatherApp';
-import SecurityTerms from './SecurityTerms'; // Make sure you have this component
+import SecurityTerms from './SecurityTerms';
 
 const theme = createTheme({
   palette: {
@@ -22,7 +22,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<WeatherApp />} />
-          <Route path="/security-terms" element={<SecurityTerms />} />
+          <Route path="/securityterms" element={<SecurityTerms />} /> {/* Updated path */}
           {/* Add other routes here */}
         </Routes>
       </Router>
@@ -31,6 +31,3 @@ function App() {
 }
 
 export default App;
-
-
-

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Button, TextField, Typography, Card, CardContent, Box, Grid } from '@mui/material';
+import { Button, TextField, Typography, Card, CardContent, Box } from '@mui/material';
 import { Search as SearchIcon } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import Popup from './Popup'; 
 import './WeatherApp.css';  
 
+// Styled components
 const WeatherContainer = styled(Box)(({ isDay }) => ({
   display: 'flex',
   flexDirection: 'column',
@@ -32,6 +33,7 @@ const DailyCard = styled(Card)({
   margin: '10px',
 });
 
+// Main WeatherApp component
 const WeatherApp = () => {
   const [city, setCity] = useState('');
   const [weather, setWeather] = useState({});
@@ -40,12 +42,11 @@ const WeatherApp = () => {
   const [currentTime, setCurrentTime] = useState('');
   const [currentDate, setCurrentDate] = useState('');
   const [isCelsius, setIsCelsius] = useState(true);
-  const [temperatureInCelsius, setTemperatureInCelsius] = useState(0);
-  const [temperatureInFahrenheit, setTemperatureInFahrenheit] = useState(0);
   const [isDay, setIsDay] = useState(true);
   const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
-  const [showPopup, setShowPopup] = useState(true); // State to manage popup visibility
+  const [showPopup, setShowPopup] = useState(true);
 
+  // Fetch weather by coordinates
   const fetchWeatherByCoordinates = useCallback(async (lat, lon) => {
     try {
       const apiKey = '3ed565296c19775878a64c31457d90b2';
@@ -57,10 +58,8 @@ const WeatherApp = () => {
       const forecastData = forecastResponse.data;
       
       setWeather(weatherData);
-      setTemperatureInCelsius(weatherData.main.temp);
-      setTemperatureInFahrenheit(weatherData.main.temp * 9 / 5 + 32);
-      setHourlyForecast(forecastData.list.slice(0, 8)); // Get the next 8 hours
-      setDailyForecast(forecastData.list.filter((_, index) => index % 8 === 0).slice(0, 7)); // Get the next 7 days
+      setHourlyForecast(forecastData.list.slice(0, 8)); // Next 8 hours
+      setDailyForecast(forecastData.list.filter((_, index) => index % 8 === 0).slice(0, 7)); // Next 7 days
       
       checkDayOrNight(weatherData);
     } catch (error) {
@@ -68,6 +67,96 @@ const WeatherApp = () => {
     }
   }, [isCelsius]);
 
+  // Fetch weather by city name
+  const fetchWeather = async (city) => {
+    try {
+      const apiKey = '3ed565296c19775878a64c31457d90b2';
+      const units = isCelsius ? 'metric' : 'imperial';
+      const weatherResponse = await axios.get(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=${units}`);
+      const weatherData = weatherResponse.data;
+      
+      const forecastResponse = await axios.get(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}&units=${units}`);
+      const forecastData = forecastResponse.data;
+      
+      setWeather(weatherData);
+      setHourlyForecast(forecastData.list.slice(0, 8)); // Next 8 hours
+      setDailyForecast(forecastData.list.filter((_, index) => index % 8 === 0).slice(0, 7)); // Next 7 days
+      
+      checkDayOrNight(weatherData);
+    } catch (error) {
+      console.error('Error fetching weather data:', error);
+    }
+  };
+
+  // Check if it's day or night
+  const checkDayOrNight = (data) => {
+    const sunrise = new Date(data.sys.sunrise * 1000);
+    const sunset = new Date(data.sys.sunset * 1000);
+    const now = new Date();
+    setIsDay(now > sunrise && now < sunset);
+  };
+
+  // Get day or night message
+  const getDayOrNightMessage = () => {
+    return isDay ? 'It\'s a beautiful day!' : 'Good evening!';
+  };
+
+  // Handle search
+  const handleSearch = () => {
+    if (city) {
+      fetchWeather(city);
+    }
+  };
+
+  // Toggle temperature unit
+  const handleUnitToggle = () => {
+    setIsCelsius(!isCelsius);
+  };
+
+  // Get weather condition emoji
+  const getWeatherConditionEmoji = () => {
+    if (weather.weather && weather.weather.length > 0) {
+      const description = weather.weather[0].description.toLowerCase();
+      if (description.includes('clear') || description.includes('sunny')) {
+        return '☀️';
+      }
+      if (description.includes('cloudy') || description.includes('overcast')) {
+        return '☁️';
+      }
+      if (description.includes('rain') || description.includes('drizzle')) {
+        return '🌧️';
+      }
+      if (description.includes('snow')) {
+        return '❄️';
+      }
+      if (description.includes('thunderstorm')) {
+        return '⛈️';
+      }
+    }
+    return '🌈';
+  };
+
+  // Get precipitation
+  const getPrecipitation = () => {
+    if (weather.rain) {
+      return `Rain: ${weather.rain['1h']} mm`;
+    }
+    if (weather.snow) {
+      return `Snow: ${weather.snow['1h']} mm`;
+    }
+    return 'No precipitation';
+  };
+
+  // Get weather icon
+  const getWeatherIcon = () => {
+    if (weather.weather && weather.weather.length > 0) {
+      const iconCode = weather.weather[0].icon;
+      return `http://openweathermap.org/img/wn/${iconCode}.png`;
+    }
+    return 'http://openweathermap.org/img/wn/01d.png'; // Default icon
+  };
+
+  // Update current time and date
   useEffect(() => {
     const updateCurrentTime = () => {
       const now = new Date();
@@ -112,89 +201,6 @@ const WeatherApp = () => {
     detectCurrentLocation(); // Detect location on component mount
     setShowPopup(true); // Display the popup immediately after the app opens
   }, [fetchWeatherByCoordinates, notificationPermission]);
-
-  const fetchWeather = async (city) => {
-    try {
-      const apiKey = '3ed565296c19775878a64c31457d90b2';
-      const units = isCelsius ? 'metric' : 'imperial';
-      const weatherResponse = await axios.get(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=${units}`);
-      const weatherData = weatherResponse.data;
-      
-      const forecastResponse = await axios.get(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}&units=${units}`);
-      const forecastData = forecastResponse.data;
-      
-      setWeather(weatherData);
-      setTemperatureInCelsius(weatherData.main.temp);
-      setTemperatureInFahrenheit(weatherData.main.temp * 9 / 5 + 32);
-      setHourlyForecast(forecastData.list.slice(0, 8)); // Get the next 8 hours
-      setDailyForecast(forecastData.list.filter((_, index) => index % 8 === 0).slice(0, 7)); // Get the next 7 days
-      
-      checkDayOrNight(weatherData);
-    } catch (error) {
-      console.error('Error fetching weather data:', error);
-    }
-  };
-
-  const checkDayOrNight = (data) => {
-    const sunrise = new Date(data.sys.sunrise * 1000);
-    const sunset = new Date(data.sys.sunset * 1000);
-    const now = new Date();
-    setIsDay(now > sunrise && now < sunset);
-  };
-
-  const getDayOrNightMessage = () => {
-    return isDay ? 'It\'s a beautiful day!' : 'Good evening!';
-  };
-
-  const handleSearch = () => {
-    if (city) {
-      fetchWeather(city);
-    }
-  };
-
-  const handleUnitToggle = () => {
-    setIsCelsius(!isCelsius);
-  };
-
-  const getWeatherConditionEmoji = () => {
-    if (weather.weather && weather.weather.length > 0) {
-      const description = weather.weather[0].description.toLowerCase();
-      if (description.includes('clear') || description.includes('sunny')) {
-        return '☀️';
-      }
-      if (description.includes('cloudy') || description.includes('overcast')) {
-        return '☁️';
-      }
-      if (description.includes('rain') || description.includes('drizzle')) {
-        return '🌧️';
-      }
-      if (description.includes('snow')) {
-        return '❄️';
-      }
-      if (description.includes('thunderstorm')) {
-        return '⛈️';
-      }
-    }
-    return '🌈';
-  };
-
-  const getPrecipitation = () => {
-    if (weather.rain) {
-      return `Rain: ${weather.rain['1h']} mm`;
-    }
-    if (weather.snow) {
-      return `Snow: ${weather.snow['1h']} mm`;
-    }
-    return 'No precipitation';
-  };
-
-  const getWeatherIcon = () => {
-    if (weather.weather && weather.weather.length > 0) {
-      const iconCode = weather.weather[0].icon;
-      return `http://openweathermap.org/img/wn/${iconCode}.png`;
-    }
-    return 'http://openweathermap.org/img/wn/01d.png'; // Default icon
-  };
 
   return (
     <WeatherContainer isDay={isDay}>
@@ -285,7 +291,7 @@ const WeatherApp = () => {
                 {new Date(item.dt * 1000).toLocaleDateString()}
               </Typography>
               <Typography variant="body2">
-                {isCelsius ? `${item.main.temp.day}°C` : `${item.main.temp.day}°F`}
+                {isCelsius ? `${item.main.temp}°C` : `${item.main.temp}°F`}
               </Typography>
               <img src={`http://openweathermap.org/img/wn/${item.weather[0].icon}.png`} alt="Weather icon" />
               <Typography variant="body2">
@@ -296,10 +302,9 @@ const WeatherApp = () => {
         ))}
       </Box>
 
-      <Popup open={showPopup} onClose={() => setShowPopup(false)} /> {/* Integrate Popup */}
+      <Popup open={showPopup} onClose={() => setShowPopup(false)} />
     </WeatherContainer>
   );
 };
 
 export default WeatherApp;
-
