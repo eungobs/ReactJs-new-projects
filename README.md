@@ -95,10 +95,7 @@ Receive Alerts: Ensure that notifications are enabled in your browser to receive
 
 Day/Night Mode: The app automatically adjusts its theme based on the time of day (light theme for daytime, dark theme for nighttime).
 
-Screenshots
-(Add screenshots of the app here, showing the day/night mode, search functionality, and four-day weather predictions.)
-
-Future Improvements
+Future Improvements:
 Extended Forecasts: Implement support for 7-day or 10-day weather forecasts.
 
 Interactive Maps: Add a feature for interactive weather maps showing precipitation, temperature, and other data layers.
@@ -107,18 +104,15 @@ User Accounts: Enable user accounts to sync saved locations across devices.
 
 Manual Theme Toggle: Allow users to manually switch between day and night modes.
 
-Contributing
+Contributing:
 Contributions are welcome! Please feel free to submit a Pull Request or open an issue for any bugs or feature requests.
 
-License
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-Acknowledgements
+Acknowledgements:
 OpenWeatherMap for providing the weather API.
 
 Material-UI for the design components.
 
 React.js for the robust framework.
 
-Author
+Author:
 Elizabeth Eunice Ndzukule
