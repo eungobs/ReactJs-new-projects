@@ -62,8 +62,12 @@ npm: Node package manager, which comes with Node.js.
 
 Installation
 Clone the repository:
+https://github.com/eungobs/ReactJs-new-projects.git
+
 
 git clone https://github.com/eungobs/ReactJs-new-projects.git
+
+
 Navigate to the project directory:
 
 cd weather-app
