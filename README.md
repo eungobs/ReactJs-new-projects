@@ -63,10 +63,10 @@ npm: Node package manager, which comes with Node.js.
 Installation
 Clone the repository:
 
-git clone https://github.com/eungobs/fast-track-weather-app.git
+git clone https://github.com/eungobs/ReactJs-new-projects.git
 Navigate to the project directory:
 
-cd fast-track-weather-app
+cd weather-app
 Install the dependencies:
 
 npm install
